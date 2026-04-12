@@ -2,24 +2,24 @@
 -- C1300S2 | sql-server-index-audit
 -- File   : 01_clustered_vs_nonclustered.sql
 -- Topic  : Clustered vs Non-Clustered Index Behavior
--- System : STN_Lab — Sistema Tributario Nacional (Lab)
--- Author : C13
+-- System : STN_Lab - Sistema Tributario Nacional (Lab)
+-- Author : C13 | Carlos Roberto
 -- ============================================================
--- ESTRUCTURA CONFIRMADA — Contribuyentes
---   index_id 1 : PK_Contribuyente     CLUSTERED     → ContribuyenteID (int)
---   index_id 2 : IX_Contribuyente_NIT NONCLUSTERED  → NIT
---   index_id 4 : IX_Contribuyente_NIT_Covering NC   → NIT (cubierto)
+-- ESTRUCTURA CONFIRMADA - Contribuyentes
+--   index_id 1 : PK_Contribuyente     CLUSTERED     - ContribuyenteID (int)
+--   index_id 2 : IX_Contribuyente_NIT NONCLUSTERED  - NIT
+--   index_id 4 : IX_Contribuyente_NIT_Covering NC   - NIT (cubierto)
 --
 -- IMPLICACIÓN:
---   Buscar por ContribuyenteID → Clustered Index Seek (clave real)
---   Buscar por NIT             → NC Index Seek + posible Key Lookup
+--   Buscar por ContribuyenteID - Clustered Index Seek (clave real)
+--   Buscar por NIT             - NC Index Seek + posible Key Lookup
 -- ============================================================
 
 USE STN_Lab;
 GO
 
 -- ============================================================
--- 1.0 — ENVIRONMENT CHECK
+-- 1.0 - ENVIRONMENT CHECK
 -- ============================================================
 
 SELECT
@@ -34,7 +34,7 @@ ORDER BY t.name;
 GO
 
 -- ============================================================
--- 1.1 — BASELINE: ESTADO ACTUAL DE ÍNDICES
+-- 1.1 - BASELINE: ESTADO ACTUAL DE ÍNDICES
 -- ============================================================
 
 SELECT
@@ -61,11 +61,11 @@ ORDER BY t.name, i.index_id;
 GO
 
 -- ============================================================
--- 1.2 — CLUSTERED INDEX SEEK POR CLAVE REAL (ContribuyenteID)
+-- 1.2 - CLUSTERED INDEX SEEK POR CLAVE REAL (ContribuyenteID)
 -- La clave clustered es ContribuyenteID (int), no NIT.
 -- Buscar por esta columna garantiza Clustered Index Seek puro:
 -- el motor navega el B-tree y llega directo al dato.
--- Sin Key Lookup posible — el nivel hoja tiene toda la fila.
+-- Sin Key Lookup posible - el nivel hoja tiene toda la fila.
 -- Esperado: Clustered Index Seek · reads = 2 a 4
 -- ============================================================
 
@@ -90,9 +90,9 @@ GO
 
 
 -- ============================================================
--- 1.2B — NON-CLUSTERED SEEK POR NIT (lo que se vio antes)
+-- 1.2B - NON-CLUSTERED SEEK POR NIT (lo que se vio antes)
 -- NIT tiene su propio NC index. Al buscar por NIT el optimizador
--- usa ese índice — correcto. Pero si la query pide columnas
+-- usa ese índice - correcto. Pero si la query pide columnas
 -- que no están en el NC (RazonSocial, Estado), hace Key Lookup
 -- de vuelta al clustered por cada fila encontrada.
 -- Esperado: NC Index Seek + Key Lookup (Nested Loops)
@@ -122,7 +122,7 @@ GO
 
 
 -- ============================================================
--- 1.2C — NC COVERING SEEK POR NIT (índice cubierto existente)
+-- 1.2C - NC COVERING SEEK POR NIT (índice cubierto existente)
 -- IX_Contribuyente_NIT_Covering ya existe en el lab.
 -- Si cubre las columnas de la query, el Key Lookup desaparece.
 -- Verificar qué columnas INCLUDE tiene antes de ejecutar.
@@ -163,17 +163,17 @@ GO
 
 -- OBSERVACIÓN 1.2C
 -- Si el covering index incluye RazonSocial y Estado:
---   → El plan muestra solo NC Index Seek, sin Key Lookup
---   → Los reads deberían ser iguales o menores que 1.2B
+--   - El plan muestra solo NC Index Seek, sin Key Lookup
+--   - Los reads deberían ser iguales o menores que 1.2B
 -- Si el Key Lookup persiste: el covering index no cubre
---   las columnas pedidas — tema central del script 02.
+--   las columnas pedidas - tema central del script 02.
 -- reads_1.2C = ___
 
 
 -- ============================================================
--- 1.3 — CLUSTERED INDEX RANGE SCAN
+-- 1.3 - CLUSTERED INDEX RANGE SCAN
 -- Rango sobre ContribuyenteID (clave clustered).
--- Las filas están ordenadas físicamente — lectura contigua.
+-- Las filas están ordenadas físicamente - lectura contigua.
 -- Esperado: Clustered Index Seek con predicado de rango
 -- ============================================================
 
@@ -197,7 +197,7 @@ GO
 
 
 -- ============================================================
--- 1.4 — NON-CLUSTERED BASELINE SIN ÍNDICE (Estado)
+-- 1.4 - NON-CLUSTERED BASELINE SIN ÍNDICE (Estado)
 -- Estado no tiene índice dedicado (no aparece en 1.1).
 -- El optimizador lee todas las páginas del clustered.
 -- Esperado: Clustered Index Scan · reads altos
@@ -216,13 +216,13 @@ WHERE Estado = 'ACTIVO';
 SET STATISTICS IO OFF;
 GO
 
--- OBSERVACIÓN 1.4 — BASELINE
+-- OBSERVACIÓN 1.4 - BASELINE
 -- Este número es el costo real de no tener índice en Estado.
--- reads_1.4 = _1087__ (BASELINE — full scan)
+-- reads_1.4 = _1087__ (BASELINE - full scan)
 
 
 -- ============================================================
--- 1.5 — CREAR NC INDEX EN Estado
+-- 1.5 - CREAR NC INDEX EN Estado
 -- ============================================================
 
 CREATE NONCLUSTERED INDEX IX_Contribuyente_Estado
@@ -231,9 +231,9 @@ GO
 
 
 -- ============================================================
--- 1.6 — NC SEEK + KEY LOOKUP (Estado con índice)
+-- 1.6 - NC SEEK + KEY LOOKUP (Estado con índice)
 -- Mismo query que 1.4. El optimizador ahora puede usar el NC.
--- Pero RazonSocial y NIT no están en el índice → Key Lookup.
+-- Pero RazonSocial y NIT no están en el índice - Key Lookup.
 -- ============================================================
 
 SET STATISTICS IO ON;
@@ -254,11 +254,11 @@ GO
 -- Pregunta de arquitecto: si el 80% son ACTIVO, el optimizador
 -- puede ignorar el NC y hacer Scan de todas formas.
 -- reads_1.6 = __2_
--- ¿Usó el NC o hizo Scan? → ___
+-- ¿Usó el NC o hizo Scan? - ___
 
 
 -- ============================================================
--- 1.7 — DECLARACIONES: ESCENARIO REAL STN
+-- 1.7 - DECLARACIONES: ESCENARIO REAL STN
 -- ============================================================
 
 -- 1.7.1 Ver índices actuales en Declaracion
@@ -276,7 +276,7 @@ GROUP BY i.index_id, i.name, i.type_desc
 ORDER BY i.index_id;
 GO
 
--- 1.7.2 Sin índice en ContribuyenteID — baseline
+-- 1.7.2 Sin índice en ContribuyenteID - baseline
 SET STATISTICS IO ON;
 
 SELECT
@@ -298,7 +298,7 @@ CREATE NONCLUSTERED INDEX IX_Declaracion_Contribuyente
     ON dbo.Declaracion (ContribuyenteID);
 GO
 
--- 1.7.4 Re-ejecutar — NC Seek + Key Lookup por PeriodoFiscal y MontoDeclarado
+-- 1.7.4 Re-ejecutar - NC Seek + Key Lookup por PeriodoFiscal y MontoDeclarado
 SET STATISTICS IO ON;
 
 SELECT
@@ -319,7 +319,7 @@ GO
 
 
 -- ============================================================
--- 1.8 — FORZAR OPERADORES (solo laboratorio)
+-- 1.8 - FORZAR OPERADORES (solo laboratorio)
 -- ============================================================
 
 -- Forzar Clustered Index Scan
@@ -344,7 +344,7 @@ GO
 
 
 -- ============================================================
--- 1.9 — CLEANUP
+-- 1.9 - CLEANUP
 -- Ejecutar después de registrar todas las observaciones.
 -- ============================================================
 
