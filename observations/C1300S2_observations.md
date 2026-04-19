@@ -387,25 +387,4 @@ Without structured index analysis, every performance incident leads to one of th
 
 ---
 
-### How this would be explained in an interview
 
-"In high-volume tax systems like STN, index strategy is the single highest-leverage architectural decision below the data model itself. The patterns are predictable: Key Lookups from narrow NC indexes, RID Lookups from heap tables, full scans from low-selectivity columns, and composite indexes built in the wrong column order. Each one is diagnosable from the execution plan and fixable with a precise structural change. In the STN lab, adding INCLUDE columns eliminated a 4x I/O difference on Declaracion, a filtered index reduced storage by 98.8% for a minority-value pattern, and composite column ordering changed a 13,852-read scan into a 5-read seek. None of these required query changes, application changes, or hardware."
-
----
-
-## 6. What's Next
-
-**This feeds into:**
-- C1300S3: Motor Interno — Buffer Pool, Plan Cache, Memory Grants — indexes interact directly with buffer pool consumption and plan cache behavior
-- C1300S8: Cargas Masivas y Particionamiento — fill factor decisions and index maintenance strategies for bulk-insert workloads
-- C1300S11: Columnstore / HTAP — the analytical queries on STN that currently force Table Scans on 1.55M rows are the target use case for columnstore
-
----
-
-## 7. References & Resources
-
-- **GitHub repo:** https://github.com/cblancogt/sql-server-index-audit
-- **Scripts executed:** 01_clustered_vs_nonclustered.sql · 02_covered_indexes.sql · 03_filtered_indexes.sql · 04_composite_indexes_column_order.sql · 05_seek_vs_scan_impact.sql · 06_missing_index_dmvs.sql · 07_duplicate_redundant_indexes.sql · 08_fill_factor_fragmentation.sql
-- **Prior session:** C1300S1_observations.md — Execution Plans Deep Dive (foundation for this week's index decisions)
-
----
